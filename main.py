@@ -1,14 +1,15 @@
 import streamlit as st
 from PIL import Image
 import numpy as np
-from tensorflow.keras.models import load_model
+from tensorflow.keras import models
 import warnings
+import pandas as pd
 from skimage import transform
 warnings.filterwarnings("ignore")
 
-@st.cache
+# @st.cache
 def load_model(model_path):
-    model=load_model(model_path)
+    model=models.load_model(model_path)
     return model
 
 def transform_image(image_array,size):
@@ -16,10 +17,13 @@ def transform_image(image_array,size):
     expanded_img=np.expand_dims(resized_img,axis=0)
     return expanded_img
 
-def predict_class(model,image):
-    pred=model.predict_proba(image)
-    p1=np.argmax(pred)
-    mapper={0:"No Crack",1:"Crack present"}
+def predict_class(image,model):
+    pred=model.predict(image)
+    if pred>0.5:
+        p1=1
+    else:
+        p1=0
+    mapper={0:"No Crack present",1:"Crack present"}
     p=mapper[p1]
     return pred,p,p1
 
@@ -27,29 +31,37 @@ def predict_class(model,image):
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    st.title("Crack Classification in concrete")
+    st.title("SURFACE CRACK DETECTION")
     ### Load the model
-    # with st.spinner('Model is being loaded..'):
-    #     model=load_model(model_path)
+    model_path="test_model1.h5"
+    with st.spinner('Model is being loaded..'):
+        model=load_model(model_path)
 
     ### upload the image
-    image_file=st.file_uploader("Upload the image that you want to classify",type=['jpg','png','jpeg'])
+    # st.subheader("Please upload an image in the specified format")
+    image_file=st.file_uploader("",type=['jpg','png','jpeg'])
     if image_file is not None:
         model_path=""
         ### Load the uploaded image and convert to array
 
         image = Image.open(image_file).convert('RGB')
         img_array = np.array(image)
-        st.image(image_file,use_column_width=True)
+
+        st.subheader("The Uploaded Image")
+        st.image(image.resize((300,300)))
         req_size=(120,120)
 
         ### Transformt the img to be fed to the model
-        transformed_img=transform_image(img_array,req_size)
-        st.write(transformed_img.shape)
-        st.write(img_array.shape)
+        with st.spinner("Predicting the class for the image"):
+            transformed_img=transform_image(img_array,req_size)
 
-        ### Predict the classes
-        # p,prediction,p1=predict_class(transformed_img,model)
+            ### Predict the classes
+            p,prediction,p1=predict_class(transformed_img,model)
+            st.subheader("Prediction")
+
+            df=pd.DataFrame({"Prediction":[prediction],"Probability for crack":np.round_(p,2)[0]})
+            st.dataframe(df)
 
     else:
-        st.write("Please upload an image!")
+        st.warning("Please upload an image to continue!")
+        
