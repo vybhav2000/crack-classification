@@ -5,6 +5,7 @@ from tensorflow.keras import models
 import warnings
 import pandas as pd
 from skimage import transform
+import base64
 warnings.filterwarnings("ignore")
 
 # @st.cache
@@ -27,10 +28,26 @@ def predict_class(image,model):
     p=mapper[p1]
     return pred,p,p1
 
+def add_bg_from_local(image_file):
+    with open(image_file, "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read())
+    st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-image: url(data:image/{"png"};base64,{encoded_string.decode()});
+        background-size: cover
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+    )
+
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
+    add_bg_from_local('photo.jpg')
     st.title("SURFACE CRACK DETECTION")
     ### Load the model
     model_path="test_model1.h5"
